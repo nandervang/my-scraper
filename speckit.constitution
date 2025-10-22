@@ -1,0 +1,45 @@
+# Web Scraper Constitution
+
+## Core Principles
+
+### Code Quality
+- **Type Safety First**: All code must be written in TypeScript with strict type checking enabled
+- **Component Purity**: React components should be pure, predictable, and testable
+- **Error Boundaries**: All user-facing components must have proper error handling
+- **Code Documentation**: Every function, component, and API endpoint must have clear JSDoc comments
+- **Testing Coverage**: Minimum 80% test coverage for critical business logic
+
+### Standards & Architecture
+- **Consistent File Structure**: Follow feature-based folder organization
+- **Naming Conventions**: Use kebab-case for files, PascalCase for components, camelCase for functions
+- **API Design**: RESTful endpoints with consistent response formats
+- **Database Schema**: Normalized schema with proper indexing and constraints
+- **Configuration Management**: Environment-based configuration for all deployments
+
+### User Experience Consistency
+- **Design System**: Use shadcn/ui components exclusively for UI consistency
+- **Responsive Design**: Mobile-first approach with breakpoint consistency
+- **Loading States**: All async operations must have proper loading indicators
+- **Error Messages**: User-friendly error messages with actionable guidance
+- **Accessibility**: WCAG 2.1 AA compliance for all user interfaces
+
+### Performance Requirements
+- **Core Web Vitals**: LCP < 2.5s, FID < 100ms, CLS < 0.1
+- **Bundle Size**: Main bundle < 200KB gzipped
+- **API Response Time**: 95% of API calls < 500ms
+- **Database Queries**: All queries optimized with proper indexing
+- **Caching Strategy**: Implement caching at CDN, application, and database levels
+
+### Technology Stack Mandates
+- **Frontend**: React 18+ with TypeScript, Vite build tool
+- **UI Library**: shadcn/ui components only
+- **Database**: Supabase for all data persistence and real-time features
+- **Deployment**: Netlify for hosting with automatic deployments
+- **API Integration**: Support for n8n automation workflows
+
+### Security & Privacy
+- **Data Protection**: All user data encrypted at rest and in transit
+- **Authentication**: Supabase Auth with proper session management
+- **Rate Limiting**: API endpoints protected against abuse
+- **Input Validation**: All user inputs validated and sanitized
+- **CORS Policy**: Restrictive CORS configuration for production

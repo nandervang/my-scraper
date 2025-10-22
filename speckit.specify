@@ -1,0 +1,208 @@
+# Web Scraper Application Specification
+
+## Application Overview
+A comprehensive web scraping platform that monitors product prices across multiple e-commerce websites, providing users with price trends, analytics, and automated alerts through API integrations.
+
+## Core Features
+
+### 1. Website Management System
+**User Story**: As a user, I want to manage a list of websites that serve as primary sources for product scraping.
+
+**Acceptance Criteria**:
+- Users can add, edit, and remove websites from their scraping list
+- Each website entry includes URL, category tags, and scraping configuration
+- System validates website accessibility and scraping feasibility
+- Support for authentication-required websites (login credentials storage)
+- Automatic discovery of similar/related websites to expand search scope
+
+**Technical Requirements**:
+- Website validation service with robot.txt compliance checking
+- Configurable scraping rules per website (selectors, rate limits)
+- Encrypted credential storage for authenticated sites
+
+### 2. Product Item Management
+**User Story**: As a user, I want to define specific products/items that the scraper should monitor across all configured websites.
+
+**Acceptance Criteria**:
+- Users can add products with detailed specifications (name, brand, model, keywords)
+- Support for product variants (size, color, condition)
+- Image recognition for product matching accuracy
+- Manual product URL addition for specific listings
+- Bulk import functionality for multiple products
+
+**Technical Requirements**:
+- Product matching algorithm using fuzzy string matching
+- Image comparison service for visual product identification
+- Product categorization and tagging system
+
+### 3. Price Monitoring & Analytics
+**User Story**: As a user, I want to track price history, identify trends, and receive recommendations on optimal purchase timing.
+
+**Acceptance Criteria**:
+- Real-time price tracking with configurable check intervals
+- Historical price data visualization with trend analysis
+- Price drop alerts and notifications
+- "Buy now" vs "wait" recommendations based on trend analysis
+- Price comparison across different websites for the same product
+
+**Technical Requirements**:
+- Time-series database for price history storage
+- Statistical analysis algorithms for trend prediction
+- Configurable alerting system with multiple notification channels
+
+### 4. Dashboard & Visualization
+**User Story**: As a user, I want an intuitive dashboard to monitor all my tracked products and their price trends.
+
+**Acceptance Criteria**:
+- Clean, responsive dashboard with price trend charts
+- Product grid/list view with current prices and trend indicators
+- Filtering and sorting capabilities (price, trend, category)
+- Export functionality for price data
+- Mobile-responsive design for on-the-go monitoring
+
+**Technical Requirements**:
+- Real-time updates using Supabase real-time subscriptions
+- Interactive charts using lightweight charting library
+- Efficient data pagination for large product lists
+
+### 5. API Endpoints for Automation
+**User Story**: As a power user, I want API endpoints to integrate with n8n and other automation tools.
+
+**Acceptance Criteria**:
+- RESTful API for all core functionalities
+- Webhook support for price change notifications
+- Bulk operations for managing products and websites
+- API rate limiting and authentication
+- Comprehensive API documentation
+
+**API Endpoints**:
+```
+GET    /api/products              - List all tracked products
+POST   /api/products              - Add new product to track
+PUT    /api/products/:id          - Update product details
+DELETE /api/products/:id          - Remove product from tracking
+GET    /api/products/:id/prices   - Get price history for product
+GET    /api/websites              - List configured websites
+POST   /api/websites              - Add new website
+POST   /api/webhooks              - Configure webhook notifications
+GET    /api/alerts                - Get current alerts/recommendations
+```
+
+## Technical Architecture
+
+### Frontend Stack
+- **Framework**: React 18 with TypeScript
+- **Build Tool**: Vite for fast development and optimized builds
+- **UI Components**: shadcn/ui for consistent design system
+- **State Management**: React Query for server state, Zustand for client state
+- **Routing**: React Router for SPA navigation
+- **Charts**: Recharts for price trend visualizations
+
+### Backend Services
+- **Database**: Supabase (PostgreSQL) with real-time subscriptions
+- **Authentication**: Supabase Auth with row-level security
+- **Storage**: Supabase Storage for product images and scraping screenshots
+- **Edge Functions**: Supabase Edge Functions with Google AI SDK integration
+
+### AI-Powered Scraping Workflow
+1. **Website Analysis**: Gemini analyzes website structure and identifies product pages
+2. **Element Detection**: Vision model identifies product images, prices, and relevant data
+3. **Intelligent Navigation**: AI agent navigates through pagination, filters, and search results
+4. **Product Matching**: Multimodal comparison between user-defined products and found items
+5. **Price Extraction**: Context-aware price detection handling various formats and currencies
+6. **Validation**: AI validates extracted data for accuracy and flags anomalies
+7. **Learning**: System learns from successful extractions to improve future performance
+
+### External Integrations
+- **AI Services**: Google Gemini Pro Vision for intelligent web navigation and multimodal analysis
+- **Web Automation**: Playwright with Gemini-powered element selection and reasoning
+- **Proxy Services**: Rotating proxy service with AI-managed rotation patterns
+- **Image Processing**: Gemini Vision for product image recognition and comparison
+- **Notification Services**: Email and webhook notifications
+- **AI Infrastructure**: Supabase Edge Functions with Google AI SDK integration
+
+### Deployment Architecture
+- **Frontend Hosting**: Netlify with automatic deployments from Git
+- **Database**: Supabase managed PostgreSQL
+- **CDN**: Netlify CDN for static assets
+- **Environment Management**: Separate staging and production environments
+
+## Data Models
+
+### Products Table
+```sql
+scraper_products (
+  id: uuid PRIMARY KEY,
+  user_id: uuid REFERENCES auth.users,
+  name: text NOT NULL,
+  brand: text,
+  model: text,
+  keywords: text[],
+  category: text,
+  image_url: text,
+  target_price: decimal,
+  created_at: timestamp,
+  updated_at: timestamp
+)
+```
+
+### Websites Table
+```sql
+scraper_websites (
+  id: uuid PRIMARY KEY,
+  user_id: uuid REFERENCES auth.users,
+  name: text NOT NULL,
+  base_url: text NOT NULL,
+  scraping_rules: jsonb,
+  is_active: boolean DEFAULT true,
+  created_at: timestamp
+)
+```
+
+### Price History Table
+```sql
+scraper_price_history (
+  id: uuid PRIMARY KEY,
+  product_id: uuid REFERENCES scraper_products,
+  website_id: uuid REFERENCES scraper_websites,
+  price: decimal NOT NULL,
+  currency: text DEFAULT 'USD',
+  availability: boolean,
+  product_url: text,
+  scraped_at: timestamp,
+  ai_confidence: decimal,
+  gemini_reasoning: text
+)
+```
+
+### AI Scraping Sessions Table
+```sql
+scraper_ai_sessions (
+  id: uuid PRIMARY KEY,
+  user_id: uuid REFERENCES auth.users,
+  website_id: uuid REFERENCES scraper_websites,
+  status: text DEFAULT 'running',
+  gemini_model_used: text,
+  products_found: integer DEFAULT 0,
+  prices_extracted: integer DEFAULT 0,
+  ai_insights: jsonb,
+  screenshot_urls: text[],
+  error_log: text,
+  started_at: timestamp DEFAULT NOW(),
+  completed_at: timestamp
+)
+```
+
+## Performance Requirements
+- **Scraping Frequency**: Configurable intervals (1-24 hours)
+- **Response Time**: Dashboard loads in < 2 seconds
+- **Concurrent Users**: Support 100+ concurrent users
+- **Data Retention**: 2 years of price history
+- **Uptime**: 99.5% availability target
+
+## Security Considerations
+- **Data Encryption**: All sensitive data encrypted at rest
+- **Rate Limiting**: API and scraping rate limits to prevent abuse
+- **User Isolation**: Row-level security for multi-tenant data
+- **Input Validation**: All user inputs sanitized and validated
+- **Monitoring**: Comprehensive logging and error tracking
