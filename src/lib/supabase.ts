@@ -128,6 +128,71 @@ export interface Notification {
   read_at?: string;
 }
 
+export interface Website {
+  id: string;
+  user_id: string;
+  
+  // Website Info
+  name: string;
+  base_url: string;
+  category?: string;
+  
+  // Scraping Configuration
+  scraping_rules: Record<string, unknown>;
+  rate_limit_seconds: number;
+  requires_auth: boolean;
+  auth_config: Record<string, unknown>;
+  
+  // Status & Validation
+  is_active: boolean;
+  last_validated_at?: string;
+  validation_status: 'valid' | 'invalid' | 'pending';
+  robots_txt_compliant: boolean;
+  
+  // AI Discovery
+  discovered_by_ai: boolean;
+  ai_confidence_score?: number;
+  similar_websites: string[];
+  
+  // Metadata
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AISession {
+  id: string;
+  user_id: string;
+  website_id?: string;
+  
+  // Session Info
+  session_type: 'product_discovery' | 'price_check' | 'source_discovery';
+  status: 'running' | 'completed' | 'failed' | 'cancelled';
+  
+  // AI Configuration
+  gemini_model_used: string;
+  search_query?: string;
+  target_category?: string;
+  
+  // Results
+  products_found: number;
+  prices_extracted: number;
+  sources_discovered: number;
+  ai_insights: Record<string, unknown>;
+  screenshot_urls: string[];
+  
+  // Error Handling
+  error_log?: string;
+  retry_count: number;
+  
+  // Timestamps
+  started_at: string;
+  completed_at?: string;
+  
+  // Performance
+  execution_time_ms?: number;
+  tokens_used?: number;
+}
+
 // =====================================================
 // DATABASE FUNCTIONS
 // =====================================================
@@ -173,5 +238,33 @@ export const db = {
     list: () => supabase.from('scraper_notifications').select('*').order('created_at', { ascending: false }),
     markAsRead: (id: string) => supabase.from('scraper_notifications').update({ read: true, read_at: new Date().toISOString() }).eq('id', id),
     create: (notification: Partial<Notification>) => supabase.from('scraper_notifications').insert(notification).select().single(),
+  },
+
+  // Websites (Primary Sources)
+  websites: {
+    list: () => supabase.from('scraper_websites').select('*').order('created_at', { ascending: false }),
+    listByCategory: (category: string) => supabase.from('scraper_websites').select('*').eq('category', category).eq('is_active', true),
+    get: (id: string) => supabase.from('scraper_websites').select('*').eq('id', id).single(),
+    create: (website: Partial<Website>) => supabase.from('scraper_websites').insert(website).select().single(),
+    update: (id: string, updates: Partial<Website>) => supabase.from('scraper_websites').update(updates).eq('id', id).select().single(),
+    delete: (id: string) => supabase.from('scraper_websites').delete().eq('id', id),
+    validate: (id: string) => supabase.from('scraper_websites').update({ 
+      last_validated_at: new Date().toISOString(),
+      validation_status: 'valid' 
+    }).eq('id', id),
+  },
+
+  // AI Sessions
+  aiSessions: {
+    list: () => supabase.from('scraper_ai_sessions').select('*').order('started_at', { ascending: false }),
+    get: (id: string) => supabase.from('scraper_ai_sessions').select('*').eq('id', id).single(),
+    create: (session: Partial<AISession>) => supabase.from('scraper_ai_sessions').insert(session).select().single(),
+    update: (id: string, updates: Partial<AISession>) => supabase.from('scraper_ai_sessions').update(updates).eq('id', id).select().single(),
+    complete: (id: string, results: { products_found: number; sources_discovered: number; ai_insights: Record<string, unknown> }) => 
+      supabase.from('scraper_ai_sessions').update({
+        status: 'completed',
+        completed_at: new Date().toISOString(),
+        ...results
+      }).eq('id', id),
   }
 };

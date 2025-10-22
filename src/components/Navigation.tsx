@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { Home, Bot, Package, Bell } from 'lucide-react';
+import { Home, Bot, Package, Bell, Globe } from 'lucide-react';
 
 interface NavItemProps {
   to: string;
@@ -38,9 +38,10 @@ interface NavigationProps {
   jobsCount?: number;
   productsCount?: number;
   notificationsCount?: number;
+  websitesCount?: number;
 }
 
-export function Navigation({ jobsCount = 0, productsCount = 0, notificationsCount = 0 }: NavigationProps) {
+export function Navigation({ jobsCount = 0, productsCount = 0, notificationsCount = 0, websitesCount = 0 }: NavigationProps) {
   return (
     <nav className="space-y-1">
       <NavItem
@@ -59,6 +60,12 @@ export function Navigation({ jobsCount = 0, productsCount = 0, notificationsCoun
         icon={<Package className="h-4 w-4" />}
         label="Product Monitoring"
         count={productsCount}
+      />
+      <NavItem
+        to="/websites"
+        icon={<Globe className="h-4 w-4" />}
+        label="Website Sources"
+        count={websitesCount}
       />
       <NavItem
         to="/notifications"

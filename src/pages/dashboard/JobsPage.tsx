@@ -1,14 +1,20 @@
 import { useEffect, useState } from 'react';
 import { db, type ScrapingJob } from '@/lib/supabase';
+import { JobExecutor } from '@/lib/jobExecutor';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Play, Pause, Trash2, Eye } from 'lucide-react';
+import { CreateJobModal } from '@/components/CreateJobModal';
+import { JobDetailsModal } from '@/components/JobDetailsModal';
+import { Play, Pause, Trash2, Eye } from 'lucide-react';
 
 export function JobsPage() {
   const [jobs, setJobs] = useState<ScrapingJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [runningJobs, setRunningJobs] = useState<Set<string>>(new Set());
+  const [selectedJob, setSelectedJob] = useState<ScrapingJob | null>(null);
+  const [showJobDetails, setShowJobDetails] = useState(false);
 
   useEffect(() => {
     loadJobs();
@@ -25,6 +31,28 @@ export function JobsPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const runJob = async (job: ScrapingJob) => {
+    try {
+      setRunningJobs(prev => new Set(prev).add(job.id));
+      await JobExecutor.runJob(job);
+      await loadJobs(); // Refresh jobs to show updated status
+    } catch (err) {
+      console.error('Failed to run job:', err);
+      // TODO: Add toast notification
+    } finally {
+      setRunningJobs(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(job.id);
+        return newSet;
+      });
+    }
+  };
+
+  const viewJob = (job: ScrapingJob) => {
+    setSelectedJob(job);
+    setShowJobDetails(true);
   };
 
   const getStatusColor = (status: string) => {
@@ -79,10 +107,7 @@ export function JobsPage() {
             Manage your AI-powered web scraping tasks
           </p>
         </div>
-        <Button className="flex items-center gap-2">
-          <Plus className="h-4 w-4" />
-          Create Job
-        </Button>
+        <CreateJobModal onJobCreated={loadJobs} />
       </div>
 
       {/* Stats */}
@@ -130,10 +155,7 @@ export function JobsPage() {
             <CardDescription className="mb-4">
               Create your first AI-powered scraping job to get started
             </CardDescription>
-            <Button className="flex items-center gap-2 mx-auto">
-              <Plus className="h-4 w-4" />
-              Create Your First Job
-            </Button>
+            <CreateJobModal onJobCreated={loadJobs} />
           </CardContent>
         </Card>
       ) : (
@@ -178,12 +200,22 @@ export function JobsPage() {
                 </div>
 
                 <div className="flex gap-2 pt-2">
-                  <Button size="sm" variant="outline" className="flex-1">
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="flex-1"
+                    onClick={() => viewJob(job)}
+                  >
                     <Eye className="h-3 w-3 mr-1" />
                     View
                   </Button>
-                  <Button size="sm" variant="outline">
-                    {job.status === 'running' ? (
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => runJob(job)}
+                    disabled={job.status === 'running' || runningJobs.has(job.id)}
+                  >
+                    {job.status === 'running' || runningJobs.has(job.id) ? (
                       <Pause className="h-3 w-3" />
                     ) : (
                       <Play className="h-3 w-3" />
@@ -198,6 +230,13 @@ export function JobsPage() {
           ))}
         </div>
       )}
+
+      {/* Job Details Modal */}
+      <JobDetailsModal
+        job={selectedJob}
+        open={showJobDetails}
+        onOpenChange={setShowJobDetails}
+      />
     </div>
   );
 }

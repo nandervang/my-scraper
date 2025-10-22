@@ -7,6 +7,7 @@ import { AuthCallback } from './pages/AuthCallback';
 import { DashboardHome } from './pages/dashboard/DashboardHome';
 import { JobsPage } from './pages/dashboard/JobsPage';
 import { ProductsPage } from './pages/dashboard/ProductsPage';
+import WebsitesPage from './pages/WebsitesPage';
 import { Navigation } from './components/Navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card';
 import { Button } from './components/ui/button';
@@ -130,6 +131,7 @@ function AuthenticatedApp({ session, onSignOut }: AuthenticatedAppProps) {
             <Route path="/" element={<DashboardHome />} />
             <Route path="/jobs" element={<JobsPage />} />
             <Route path="/products" element={<ProductsPage />} />
+            <Route path="/websites" element={<WebsitesPage />} />
             <Route path="/notifications" element={<div>Notifications page coming soon</div>} />
           </Routes>
         </main>
