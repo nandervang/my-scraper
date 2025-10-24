@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { db, supabase, type ScrapingJob } from '@/lib/supabase';
+import { useToast } from '@/hooks/use-toast';
+import { JobTemplateModal } from '@/components/JobTemplateModal';
+import { createJobFromTemplate } from '@/lib/templates';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -31,6 +34,7 @@ export function CreateJobModal({ onJobCreated }: CreateJobModalProps) {
     use_vision: false,
     gemini_model: 'models/gemini-2.5-flash', // Best value model
   });
+  const { toast } = useToast();
 
   const scrapingTypes = [
     {
@@ -110,12 +114,17 @@ export function CreateJobModal({ onJobCreated }: CreateJobModalProps) {
       
       if (data) {
         onJobCreated?.(data);
+        toast({ title: 'Job created', description: `"${data.name}" has been created successfully` });
         setOpen(false);
         resetForm();
       }
     } catch (error) {
       console.error('Failed to create job:', error);
-      // TODO: Add proper error handling/toast
+      toast({ 
+        title: 'Failed to create job', 
+        description: error instanceof Error ? error.message : 'An unexpected error occurred',
+        variant: 'destructive'
+      });
     } finally {
       setLoading(false);
     }
@@ -130,6 +139,17 @@ export function CreateJobModal({ onJobCreated }: CreateJobModalProps) {
       gemini_model: 'models/gemini-2.5-flash',
     });
     setSelectedType('general');
+  };
+
+  const handleTemplateSelected = (templateData: ReturnType<typeof createJobFromTemplate>) => {
+    setFormData({
+      name: templateData.name || '',
+      url: templateData.url || '',
+      ai_prompt: templateData.ai_prompt || '',
+      use_vision: templateData.use_vision || false,
+      gemini_model: templateData.gemini_model || 'models/gemini-2.5-flash',
+    });
+    setSelectedType(templateData.scraping_type || 'general');
   };
 
   const handleUrlChange = (url: string) => {
@@ -150,51 +170,52 @@ export function CreateJobModal({ onJobCreated }: CreateJobModalProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="flex items-center gap-2">
-          <Plus className="h-4 w-4" />
-          Create Job
+        <Button className="btn-enhanced text-lg">
+          <Plus className="h-5 w-5" />
+          Create New Job
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="modal-fullscreen dialog-content">
         <DialogHeader>
-          <DialogTitle>Create AI Scraping Job</DialogTitle>
-          <DialogDescription>
-            Set up an intelligent web scraping job powered by Google Gemini AI
+          <DialogTitle className="text-3xl font-bold">Create AI Scraping Job</DialogTitle>
+          <DialogDescription className="flex items-center justify-between text-xl">
+            <span>Set up an intelligent web scraping job powered by Google Gemini AI</span>
+            <JobTemplateModal onTemplateSelected={handleTemplateSelected} />
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-8 overflow-y-auto flex-1" style={{ maxHeight: 'calc(100vh - 300px)' }}>
           {/* Scraping Type Selection */}
-          <div className="space-y-3">
-            <label className="text-sm font-medium">Scraping Type</label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="space-y-4">
+            <label className="text-xl font-semibold">Scraping Type</label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {scrapingTypes.map((type) => (
                 <Card 
                   key={type.id}
-                  className={`cursor-pointer transition-all hover:shadow-md ${
+                  className={`cursor-pointer transition-all hover:shadow-md card-enhanced text-lg ${
                     selectedType === type.id 
-                      ? 'ring-2 ring-blue-500 bg-blue-50' 
-                      : 'hover:bg-gray-50'
+                      ? 'ring-2 ring-primary bg-primary/10' 
+                      : 'hover:bg-card/80'
                   }`}
                   onClick={() => {
                     setSelectedType(type.id);
                     setFormData(prev => ({ ...prev, ai_prompt: '' })); // Reset custom prompt
                   }}
                 >
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm flex items-center gap-2">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg flex items-center gap-3">
                       {type.icon}
                       {type.name}
                       {selectedType === type.id && (
-                        <Badge variant="secondary" className="ml-auto">Selected</Badge>
+                        <Badge variant="secondary" className="ml-auto text-sm">Selected</Badge>
                       )}
                     </CardTitle>
-                    <CardDescription className="text-xs">
+                    <CardDescription className="text-base">
                       {type.description}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="pt-0">
-                    <p className="text-xs text-gray-500">{type.example}</p>
+                    <p className="text-base text-muted-foreground">{type.example}</p>
                   </CardContent>
                 </Card>
               ))}
@@ -202,9 +223,9 @@ export function CreateJobModal({ onJobCreated }: CreateJobModalProps) {
           </div>
 
           {/* Basic Information */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label htmlFor="name" className="text-sm font-medium">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-3">
+              <label htmlFor="name" className="text-lg font-semibold">
                 Job Name
               </label>
               <Input
@@ -213,10 +234,11 @@ export function CreateJobModal({ onJobCreated }: CreateJobModalProps) {
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
+                className="text-lg h-14"
               />
             </div>
-            <div className="space-y-2">
-              <label htmlFor="url" className="text-sm font-medium">
+            <div className="space-y-3">
+              <label htmlFor="url" className="text-lg font-semibold">
                 Target URL
               </label>
               <Input
@@ -226,19 +248,20 @@ export function CreateJobModal({ onJobCreated }: CreateJobModalProps) {
                 value={formData.url}
                 onChange={(e) => handleUrlChange(e.target.value)}
                 required
+                className="text-lg h-14"
               />
             </div>
           </div>
 
           {/* AI Configuration */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Bot className="h-4 w-4 text-blue-600" />
-              <h3 className="font-medium">AI Configuration</h3>
+          <div className="space-y-6">
+            <div className="flex items-center gap-3">
+              <Bot className="h-6 w-6 text-blue-600" />
+              <h3 className="text-xl font-semibold">AI Configuration</h3>
             </div>
             
-            <div className="space-y-2">
-              <label htmlFor="prompt" className="text-sm font-medium">
+            <div className="space-y-3">
+              <label htmlFor="prompt" className="text-lg font-semibold">
                 Custom AI Prompt (Optional)
               </label>
               <Textarea
@@ -246,19 +269,20 @@ export function CreateJobModal({ onJobCreated }: CreateJobModalProps) {
                 placeholder={`Default: ${geminiPrompts[selectedType]}`}
                 value={formData.ai_prompt}
                 onChange={(e) => setFormData({ ...formData, ai_prompt: e.target.value })}
-                rows={3}
+                rows={4}
+                className="text-lg min-h-[120px]"
               />
-              <p className="text-xs text-gray-500">
+              <p className="text-base text-muted-foreground">
                 Leave empty to use the default prompt for {scrapingTypes.find(t => t.id === selectedType)?.name.toLowerCase()}
               </p>
             </div>
 
-            <div className="flex items-center justify-between p-3 border rounded-lg">
-              <div className="flex items-center gap-2">
-                <Eye className="h-4 w-4 text-purple-600" />
+            <div className="flex items-center justify-between p-6 border rounded-lg card-enhanced">
+              <div className="flex items-center gap-3">
+                <Eye className="h-6 w-6 text-purple-600" />
                 <div>
-                  <p className="text-sm font-medium">Vision AI (Screenshots)</p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-lg font-semibold">Vision AI (Screenshots)</p>
+                  <p className="text-base text-muted-foreground">
                     Use Gemini Vision to analyze page screenshots for better accuracy
                   </p>
                 </div>
@@ -266,7 +290,8 @@ export function CreateJobModal({ onJobCreated }: CreateJobModalProps) {
               <Button
                 type="button"
                 variant={formData.use_vision ? "default" : "outline"}
-                size="sm"
+                size="lg"
+                className="btn-enhanced text-lg"
                 onClick={() => setFormData({ ...formData, use_vision: !formData.use_vision })}
               >
                 {formData.use_vision ? 'Enabled' : 'Disabled'}
@@ -274,15 +299,17 @@ export function CreateJobModal({ onJobCreated }: CreateJobModalProps) {
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="gap-4">
             <Button
               type="button"
               variant="outline"
               onClick={() => setOpen(false)}
+              size="lg"
+              className="btn-enhanced text-lg"
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" disabled={loading} size="lg" className="btn-enhanced text-lg">
               {loading ? 'Creating...' : 'Create Job'}
             </Button>
           </DialogFooter>

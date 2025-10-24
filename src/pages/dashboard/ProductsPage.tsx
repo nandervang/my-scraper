@@ -77,157 +77,189 @@ export function ProductsPage() {
   const belowTargetCount = products.filter(p => p.current_price && p.target_price && p.current_price <= p.target_price).length;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Product Monitoring</h1>
-          <p className="text-gray-600 mt-1">
-            Track prices and availability across multiple sites
-          </p>
-        </div>
-        <Button className="flex items-center gap-2">
-          <Plus className="h-4 w-4" />
-          Add Product
-        </Button>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-blue-600">{products.length}</div>
-            <div className="text-sm text-gray-600">Total Products</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <div className="text-2xl font-bold text-green-600">{inStockCount}</div>
-              <TrendingUp className="h-4 w-4 text-green-600" />
-            </div>
-            <div className="text-sm text-gray-600">In Stock</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <div className="text-2xl font-bold text-red-600">{outOfStockCount}</div>
-              <TrendingDown className="h-4 w-4 text-red-600" />
-            </div>
-            <div className="text-sm text-gray-600">Out of Stock</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <div className="text-2xl font-bold text-orange-600">{belowTargetCount}</div>
-              <TrendingDown className="h-4 w-4 text-orange-600" />
-            </div>
-            <div className="text-sm text-gray-600">Below Target</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Products Grid */}
-      {products.length === 0 ? (
-        <Card className="text-center py-12">
-          <CardContent>
-            <div className="text-6xl mb-4">🛍️</div>
-            <CardTitle className="mb-2">No products being monitored</CardTitle>
-            <CardDescription className="mb-4">
-              Add products to start tracking prices and availability
-            </CardDescription>
-            <Button className="flex items-center gap-2 mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-pink-50 dark:from-slate-950 dark:via-purple-950 dark:to-pink-950">
+      <div className="container mx-auto px-6 py-8 space-y-8">
+        {/* Enhanced Header */}
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+          <div className="space-y-2">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+              Product Monitoring
+            </h1>
+            <p className="text-lg text-muted-foreground">
+              Track prices and availability across multiple sites
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button className="apple-button flex items-center gap-2">
               <Plus className="h-4 w-4" />
-              Add Your First Product
+              Add Product
             </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {products.map((product) => {
-            const stockStatus = getStockStatus(product.in_stock);
-            return (
-              <Card key={product.id} className="hover:shadow-lg transition-shadow">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <CardTitle className="text-lg line-clamp-2">{product.name}</CardTitle>
-                    <Badge className={stockStatus.color}>
-                      {stockStatus.text}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {product.image_url && (
-                    <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden">
-                      <img 
-                        src={product.image_url} 
-                        alt={product.name}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  )}
-
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Current Price:</span>
-                      <div className="flex items-center gap-1">
-                        <span className="font-semibold">
-                          {formatPrice(product.current_price, product.currency)}
-                        </span>
-                        {getPriceIndicator(product.current_price, product.target_price)}
-                      </div>
-                    </div>
-
-                    {product.target_price && (
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Target Price:</span>
-                        <span className="text-sm font-medium text-green-600">
-                          {formatPrice(product.target_price, product.currency)}
-                        </span>
-                      </div>
-                    )}
-
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Check Frequency:</span>
-                      <span className="text-sm">Every {product.check_frequency_hours}h</span>
-                    </div>
-                  </div>
-
-                  <div className="text-xs text-gray-500 space-y-1">
-                    <div className="truncate">
-                      <strong>URL:</strong> {product.url}
-                    </div>
-                    {product.last_checked_at && (
-                      <div>
-                        <strong>Last checked:</strong> {new Date(product.last_checked_at).toLocaleString()}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex gap-2 pt-2">
-                    <Button size="sm" variant="outline" className="flex-1">
-                      <Eye className="h-3 w-3 mr-1" />
-                      View
-                    </Button>
-                    <Button size="sm" variant="outline">
-                      {product.notifications_enabled ? (
-                        <Bell className="h-3 w-3" />
-                      ) : (
-                        <BellOff className="h-3 w-3" />
-                      )}
-                    </Button>
-                    <Button size="sm" variant="outline" className="text-red-600">
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+          </div>
         </div>
-      )}
+
+        {/* Enhanced Stats Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="card-enhanced border-0 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/50 dark:to-cyan-950/50">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                    {products.length}
+                  </div>
+                  <div className="text-sm text-blue-700 dark:text-blue-300 font-medium">Total Products</div>
+                </div>
+                <div className="text-2xl">🛍️</div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="card-enhanced border-0 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/50 dark:to-emerald-950/50">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-3xl font-bold text-green-600 dark:text-green-400">
+                    {inStockCount}
+                  </div>
+                  <div className="text-sm text-green-700 dark:text-green-300 font-medium">In Stock</div>
+                </div>
+                <div className="text-2xl">📈</div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="card-enhanced border-0 bg-gradient-to-br from-red-50 to-pink-50 dark:from-red-950/50 dark:to-pink-950/50">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-3xl font-bold text-red-600 dark:text-red-400">
+                    {outOfStockCount}
+                  </div>
+                  <div className="text-sm text-red-700 dark:text-red-300 font-medium">Out of Stock</div>
+                </div>
+                <div className="text-2xl">📉</div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="card-enhanced border-0 bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-950/50 dark:to-amber-950/50">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-3xl font-bold text-orange-600 dark:text-orange-400">
+                    {belowTargetCount}
+                  </div>
+                  <div className="text-sm text-orange-700 dark:text-orange-300 font-medium">Below Target</div>
+                </div>
+                <div className="text-2xl">🎯</div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Products Grid */}
+        {products.length === 0 ? (
+          <Card className="card-enhanced text-center py-16">
+            <CardContent>
+              <div className="space-y-6">
+                <div className="text-8xl">🛍️</div>
+                <div className="space-y-2">
+                  <CardTitle className="text-2xl">No products being monitored</CardTitle>
+                  <CardDescription className="text-lg max-w-md mx-auto">
+                    Add products to start tracking prices and availability
+                  </CardDescription>
+                </div>
+                <Button className="apple-button flex items-center gap-2 mx-auto">
+                  <Plus className="h-4 w-4" />
+                  Add Your First Product
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+            {products.map((product) => {
+              const stockStatus = getStockStatus(product.in_stock);
+              return (
+                <Card key={product.id} className="card-hover">
+                  <CardHeader className="pb-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <CardTitle className="text-xl line-clamp-2">{product.name}</CardTitle>
+                      <Badge className={`status-indicator ${stockStatus.text === 'In Stock' ? 'status-success' : stockStatus.text === 'Out of Stock' ? 'status-error' : 'status-warning'}`}>
+                        {stockStatus.text}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {product.image_url && (
+                      <div className="aspect-video bg-muted rounded-lg overflow-hidden">
+                        <img 
+                          src={product.image_url} 
+                          alt={product.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
+
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">Current Price:</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-lg">
+                            {formatPrice(product.current_price, product.currency)}
+                          </span>
+                          {getPriceIndicator(product.current_price, product.target_price)}
+                        </div>
+                      </div>
+
+                      {product.target_price && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">Target Price:</span>
+                          <span className="text-sm font-medium text-green-600 dark:text-green-400">
+                            {formatPrice(product.target_price, product.currency)}
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">Check Frequency:</span>
+                        <span className="text-sm font-medium">Every {product.check_frequency_hours}h</span>
+                      </div>
+                    </div>
+
+                    <div className="text-xs text-muted-foreground space-y-1 p-3 bg-muted/50 rounded-lg">
+                      <div className="truncate">
+                        <strong>URL:</strong> {product.url}
+                      </div>
+                      {product.last_checked_at && (
+                        <div>
+                          <strong>Last checked:</strong> {new Date(product.last_checked_at).toLocaleString()}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex gap-3 pt-2">
+                      <Button size="lg" variant="outline" className="flex-1 apple-button">
+                        <Eye className="h-4 w-4 mr-2" />
+                        View
+                      </Button>
+                      <Button size="lg" variant="outline" className="apple-button">
+                        {product.notifications_enabled ? (
+                          <Bell className="h-4 w-4" />
+                        ) : (
+                          <BellOff className="h-4 w-4" />
+                        )}
+                      </Button>
+                      <Button size="lg" variant="outline" className="text-destructive hover:text-destructive apple-button">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

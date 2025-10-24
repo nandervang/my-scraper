@@ -11,6 +11,8 @@ import WebsitesPage from './pages/WebsitesPage';
 import { Navigation } from './components/Navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card';
 import { Button } from './components/ui/button';
+import { ThemeProvider } from './hooks/use-theme';
+import { ThemeToggle } from './components/ThemeToggle';
 
 function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -37,47 +39,56 @@ function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
+      <ThemeProvider defaultTheme="system" storageKey="my-scraper-theme">
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-slate-900 dark:to-slate-950 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-indigo-600 dark:border-indigo-400 mx-auto"></div>
+            <p className="mt-4 text-gray-600 dark:text-gray-300">Loading...</p>
+          </div>
         </div>
-      </div>
+      </ThemeProvider>
     );
   }
 
   if (!session) {
     return (
-      <Router>
-        <Routes>
-          <Route path="/auth/callback" element={<AuthCallback />} />
-          <Route path="*" element={
-            <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-              <Card className="w-full max-w-md">
-                <CardHeader className="text-center">
-                  <CardTitle className="text-2xl font-bold text-gray-900">Welcome to My Scraper</CardTitle>
-                  <CardDescription>
-                    Your intelligent web scraping companion powered by AI
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <AuthComponent />
-                </CardContent>
-              </Card>
-            </div>
-          } />
-        </Routes>
-      </Router>
+      <ThemeProvider defaultTheme="system" storageKey="my-scraper-theme">
+        <Router>
+          <Routes>
+            <Route path="/auth/callback" element={<AuthCallback />} />
+            <Route path="*" element={
+              <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-slate-900 dark:to-slate-950 flex items-center justify-center p-4">
+                <div className="absolute top-4 right-4">
+                  <ThemeToggle />
+                </div>
+                <Card className="w-full max-w-md card-enhanced">
+                  <CardHeader className="text-center">
+                    <CardTitle className="text-3xl font-bold">Welcome to My Scraper</CardTitle>
+                    <CardDescription className="text-lg">
+                      Your intelligent web scraping companion powered by AI
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <AuthComponent />
+                  </CardContent>
+                </Card>
+              </div>
+            } />
+          </Routes>
+        </Router>
+      </ThemeProvider>
     );
   }
 
   return (
-    <Router>
-      <Routes>
-        <Route path="/auth/callback" element={<AuthCallback />} />
-        <Route path="/*" element={<AuthenticatedApp session={session} onSignOut={handleSignOut} />} />
-      </Routes>
-    </Router>
+    <ThemeProvider defaultTheme="system" storageKey="my-scraper-theme">
+      <Router>
+        <Routes>
+          <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route path="/*" element={<AuthenticatedApp session={session} onSignOut={handleSignOut} />} />
+        </Routes>
+      </Router>
+    </ThemeProvider>
   );
 }
 
@@ -88,39 +99,42 @@ interface AuthenticatedAppProps {
 
 function AuthenticatedApp({ session, onSignOut }: AuthenticatedAppProps) {
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted flex">
       {/* Sidebar */}
-      <div className="w-64 bg-white shadow-sm border-r flex flex-col">
-        <div className="p-6 border-b">
-          <h1 className="text-xl font-bold text-gray-900">My Scraper</h1>
-          <p className="text-sm text-gray-600 mt-1">AI-powered web scraping</p>
+      <div className="w-64 bg-gradient-to-b from-card to-muted/50 shadow-sm border-r border-primary/20 flex flex-col">
+        <div className="p-6 border-b border-primary/20">
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-electric bg-clip-text text-transparent">My Scraper</h1>
+          <p className="text-lg text-muted-foreground mt-1">AI-powered web scraping</p>
         </div>
         
         <div className="flex-1 p-4">
           <Navigation />
         </div>
 
-        <div className="p-4 border-t">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-              <span className="text-sm font-semibold text-blue-600">
+        <div className="p-4 border-t border-primary/20">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 bg-gradient-to-br from-primary to-electric rounded-full flex items-center justify-center">
+              <span className="text-lg font-bold text-primary-foreground">
                 {session.user.email?.[0]?.toUpperCase()}
               </span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">
+              <p className="text-lg font-semibold truncate">
                 {session.user.email}
               </p>
             </div>
           </div>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={onSignOut}
-            className="w-full"
-          >
-            Sign Out
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              size="lg"
+              onClick={onSignOut}
+              className="flex-1 btn-enhanced"
+            >
+              Sign Out
+            </Button>
+            <ThemeToggle />
+          </div>
         </div>
       </div>
 
