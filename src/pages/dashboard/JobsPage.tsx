@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { db, type ScrapingJob } from '@/lib/supabase';
 import { JobExecutor, JobExecutionException, JobExecutionError } from '@/lib/jobExecutor';
 import { Card, CardContent, CardDescription, CardTitle } from '@/components/ui/card';
@@ -7,14 +7,14 @@ import { CreateJobModal } from '@/components/CreateJobModal';
 import { JobDetailsModal } from '@/components/JobDetailsModal';
 import { JobCard } from '@/components/JobCard';
 import { useToast } from '@/hooks/use-toast';
+import { useApiErrorHandler } from '@/hooks/useErrorHandler';
 import { Search, Filter } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { LoadingCard } from '@/components/ui/loading';
 
 export function JobsPage() {
   const [jobs, setJobs] = useState<ScrapingJob[]>([]);
   const [filteredJobs, setFilteredJobs] = useState<ScrapingJob[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [runningJobs, setRunningJobs] = useState<Set<string>>(new Set());
   const [deletingJobs, setDeletingJobs] = useState<Set<string>>(new Set());
   const [selectedJob, setSelectedJob] = useState<ScrapingJob | null>(null);
@@ -23,22 +23,37 @@ export function JobsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const { toast } = useToast();
 
+  // Enhanced error handling
+  const { 
+    error, 
+    isLoading: loading, 
+    executeApiCall, 
+    clearError, 
+    retry 
+  } = useApiErrorHandler({
+    showToast: false, // We'll handle toasts manually for better UX
+    autoRetry: false,
+    maxRetries: 3,
+  });
+
+  const loadJobs = useCallback(async () => {
+    const { data } = await executeApiCall(
+      async () => {
+        const result = await db.jobs.list();
+        if (result.error) throw result.error;
+        return result.data || [];
+      },
+      { context: 'loadJobs' }
+    );
+
+    if (data) {
+      setJobs(data);
+    }
+  }, [executeApiCall]);
+
   useEffect(() => {
     loadJobs();
-  }, []);
-
-  const loadJobs = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await db.jobs.list();
-      if (error) throw error;
-      setJobs(data || []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load jobs');
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [loadJobs]);
 
   const runJob = async (job: ScrapingJob) => {
     try {
@@ -144,12 +159,30 @@ export function JobsPage() {
 
   if (loading) {
     return (
-      <div className="space-y-4">
-        <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="h-48 bg-gray-200 rounded animate-pulse"></div>
-          ))}
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950">
+        <div className="container mx-auto px-6 py-8 space-y-8">
+          {/* Header Skeleton */}
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <div className="space-y-2">
+              <div className="h-10 bg-muted rounded-lg w-80 animate-pulse"></div>
+              <div className="h-6 bg-muted/70 rounded w-96 animate-pulse"></div>
+            </div>
+          </div>
+
+          {/* Stats Cards Skeleton */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="card-enhanced animate-pulse bg-muted/30 h-24"></div>
+            ))}
+          </div>
+
+          {/* Search Bar Skeleton */}
+          <div className="card-enhanced animate-pulse bg-muted/30 h-20"></div>
+
+          {/* Jobs Grid Skeleton */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+            <LoadingCard count={6} />
+          </div>
         </div>
       </div>
     );
@@ -157,9 +190,26 @@ export function JobsPage() {
 
   if (error) {
     return (
-      <div className="text-center py-8">
-        <div className="text-red-600 mb-4">Error: {error}</div>
-        <Button onClick={loadJobs}>Try Again</Button>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-950 dark:via-blue-950 dark:to-indigo-950">
+        <div className="container mx-auto px-6 py-8">
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="text-8xl mb-6">⚠️</div>
+            <h2 className="text-2xl font-bold text-foreground mb-2">Something went wrong</h2>
+            <p className="text-muted-foreground mb-6 max-w-md">
+              We encountered an error while loading your jobs: {error?.userMessage || error?.message || 'Unknown error'}
+            </p>
+            <div className="flex gap-3">
+              <Button onClick={() => { clearError(); loadJobs(); }} className="apple-button">
+                Try Again
+              </Button>
+              {error?.recoverable && (
+                <Button onClick={retry} variant="outline" className="apple-button">
+                  Auto Retry
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -320,6 +370,7 @@ export function JobsPage() {
                 onRun={runJob}
                 onView={viewJob}
                 onDelete={deleteJob}
+                onScheduleUpdated={loadJobs}
               />
             ))}
           </div>

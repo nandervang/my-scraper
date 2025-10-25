@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { Home, Bot, Package, Bell, Globe } from 'lucide-react';
+import { Home, Bot, Package, Bell, Globe, Activity, BarChart3 } from 'lucide-react';
 
 interface NavItemProps {
   to: string;
@@ -39,9 +39,10 @@ interface NavigationProps {
   productsCount?: number;
   notificationsCount?: number;
   websitesCount?: number;
+  activeJobsCount?: number;
 }
 
-export function Navigation({ jobsCount = 0, productsCount = 0, notificationsCount = 0, websitesCount = 0 }: NavigationProps) {
+export function Navigation({ jobsCount = 0, productsCount = 0, notificationsCount = 0, websitesCount = 0, activeJobsCount = 0 }: NavigationProps) {
   return (
     <nav className="space-y-1">
       <NavItem
@@ -54,6 +55,12 @@ export function Navigation({ jobsCount = 0, productsCount = 0, notificationsCoun
         icon={<Bot className="h-4 w-4" />}
         label="Scraping Jobs"
         count={jobsCount}
+      />
+      <NavItem
+        to="/monitoring"
+        icon={<Activity className="h-4 w-4" />}
+        label="Real-time Monitoring"
+        count={activeJobsCount}
       />
       <NavItem
         to="/products"
@@ -72,6 +79,11 @@ export function Navigation({ jobsCount = 0, productsCount = 0, notificationsCoun
         icon={<Bell className="h-4 w-4" />}
         label="Notifications"
         count={notificationsCount}
+      />
+      <NavItem
+        to="/analytics"
+        icon={<BarChart3 className="h-4 w-4" />}
+        label="Analytics"
       />
     </nav>
   );

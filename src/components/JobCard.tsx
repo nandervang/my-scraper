@@ -3,6 +3,8 @@ import { type ScrapingJob } from '@/lib/supabase';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { JobScheduleModal } from '@/components/JobScheduleModal';
+import { JobExecutionHistory } from '@/components/JobExecutionHistory';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,7 +24,8 @@ import {
   Calendar, 
   ExternalLink,
   Zap,
-  Loader2
+  Loader2,
+  History
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -33,6 +36,7 @@ interface JobCardProps {
   onRun: (job: ScrapingJob) => void;
   onView: (job: ScrapingJob) => void;
   onDelete: (job: ScrapingJob) => void;
+  onScheduleUpdated?: () => void;
 }
 
 export function JobCard({ 
@@ -41,9 +45,11 @@ export function JobCard({
   isDeleting = false,
   onRun, 
   onView, 
-  onDelete 
+  onDelete,
+  onScheduleUpdated = () => {}
 }: JobCardProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -84,6 +90,7 @@ export function JobCard({
   };
 
   return (
+    <>
     <Card 
       className={cn(
         "card-hover apple-text focus-ring group cursor-pointer",
@@ -192,6 +199,24 @@ export function JobCard({
           
           <Button 
             size="lg" 
+            variant="outline" 
+            className="apple-button focus-ring text-lg"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsHistoryOpen(true);
+            }}
+          >
+            <History className="h-4 w-4" />
+            History
+          </Button>
+          
+          <JobScheduleModal 
+            job={job} 
+            onScheduleUpdated={onScheduleUpdated}
+          />
+          
+          <Button 
+            size="lg" 
             variant="outline"
             className="apple-button focus-ring text-lg"
             onClick={(e) => {
@@ -245,5 +270,13 @@ export function JobCard({
         </div>
       </CardContent>
     </Card>
+    
+    {/* Job Execution History */}
+    <JobExecutionHistory 
+      job={job}
+      isOpen={isHistoryOpen}
+      onClose={() => setIsHistoryOpen(false)}
+    />
+  </>
   );
 }

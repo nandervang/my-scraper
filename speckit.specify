@@ -1,11 +1,29 @@
 # Web Scraper Application Specification
 
 ## Application Overview
-A comprehensive web scraping platform that monitors product prices across multiple e-commerce websites, providing users with price trends, analytics, and automated alerts through API integrations.
+A comprehensive, AI-powered web scraping platform with Apple-inspired design that monitors product prices across multiple e-commerce websites, providing users with advanced job scheduling, execution history, real-time analytics, and automated alerts through API integrations.
 
 ## Core Features
 
-### 1. Website Management System
+### 1. Advanced Job Management System
+**User Story**: As a user, I want to create, schedule, monitor, and analyze AI-powered scraping jobs with comprehensive execution tracking.
+
+**Acceptance Criteria**:
+- Users can create scraping jobs with AI-powered configuration assistance
+- Flexible scheduling system (manual, hourly, daily, weekly, monthly, custom intervals)
+- Real-time job execution monitoring with status updates
+- Comprehensive execution history with performance metrics
+- Job templates and bulk operations for efficiency
+- Advanced error handling with detailed diagnostics
+
+**Technical Requirements**:
+- JobScheduleModal component with Apple-inspired design
+- JobHistoryModal with execution analytics and performance tracking
+- Real-time job status updates using Supabase subscriptions
+- Job queue management with priority and retry mechanisms
+- Automated job scheduling with timezone support
+
+### 2. Intelligent Website Management System
 **User Story**: As a user, I want to manage a list of websites that serve as primary sources for product scraping.
 
 **Acceptance Criteria**:
@@ -50,22 +68,73 @@ A comprehensive web scraping platform that monitors product prices across multip
 - Statistical analysis algorithms for trend prediction
 - Configurable alerting system with multiple notification channels
 
-### 4. Dashboard & Visualization
-**User Story**: As a user, I want an intuitive dashboard to monitor all my tracked products and their price trends.
+### 4. Enhanced Dashboard & Real-time Analytics
+**User Story**: As a user, I want a comprehensive dashboard with real-time updates, performance metrics, and intelligent insights about my scraping operations.
 
 **Acceptance Criteria**:
-- Clean, responsive dashboard with price trend charts
-- Product grid/list view with current prices and trend indicators
-- Filtering and sorting capabilities (price, trend, category)
-- Export functionality for price data
-- Mobile-responsive design for on-the-go monitoring
+- Real-time dashboard with live statistics and job monitoring
+- Performance metrics including success rates, execution times, and throughput
+- Activity feed showing recent job executions and status changes
+- Quick action buttons for common operations
+- Advanced filtering and search capabilities
+- Beautiful, responsive design with Apple-inspired aesthetics
+- Auto-refresh functionality with configurable intervals
 
 **Technical Requirements**:
-- Real-time updates using Supabase real-time subscriptions
-- Interactive charts using lightweight charting library
-- Efficient data pagination for large product lists
+- DashboardOverview component with real-time data updates
+- Real-time statistics using Supabase subscriptions
+- Performance analytics with trend analysis
+- Interactive charts and visualizations
+- Responsive design optimized for all device sizes
 
-### 5. API Endpoints for Automation
+### 6. Advanced User Experience & Design System
+**User Story**: As a user, I want a beautiful, intuitive interface that provides smooth interactions and comprehensive feedback.
+
+**Acceptance Criteria**:
+- Apple-inspired design language with consistent styling
+- Comprehensive loading states and smooth animations
+- Enhanced theme system with seamless dark/light mode switching
+- Advanced error handling with user-friendly messages
+- Responsive design that works perfectly on all devices
+- Accessible interface following WCAG guidelines
+
+**Technical Requirements**:
+- Apple-style button components with proper focus states
+- Comprehensive loading component library (spinners, cards, dots)
+- Enhanced ThemeToggle with visual descriptions and smooth transitions
+- CSS animations for better user feedback
+- Proper ARIA labels and keyboard navigation support
+
+### 7. API Endpoints for Automation
+**User Story**: As a power user, I want API endpoints to integrate with n8n and other automation tools.
+
+**Acceptance Criteria**:
+- RESTful API for all core functionalities
+- Webhook support for job status and price change notifications
+- Bulk operations for managing jobs, products and websites
+- API rate limiting and authentication
+- Comprehensive API documentation
+
+**API Endpoints**:
+```
+GET    /api/jobs                  - List all scraping jobs
+POST   /api/jobs                  - Create new scraping job
+PUT    /api/jobs/:id              - Update job configuration
+DELETE /api/jobs/:id              - Delete scraping job
+POST   /api/jobs/:id/run          - Execute job manually
+GET    /api/jobs/:id/history      - Get job execution history
+POST   /api/jobs/:id/schedule     - Update job schedule
+GET    /api/products              - List all tracked products
+POST   /api/products              - Add new product to track
+PUT    /api/products/:id          - Update product details
+DELETE /api/products/:id          - Remove product from tracking
+GET    /api/products/:id/prices   - Get price history for product
+GET    /api/websites              - List configured websites
+POST   /api/websites              - Add new website
+POST   /api/webhooks              - Configure webhook notifications
+GET    /api/alerts                - Get current alerts/recommendations
+GET    /api/analytics/dashboard   - Get dashboard statistics
+```
 **User Story**: As a power user, I want API endpoints to integrate with n8n and other automation tools.
 
 **Acceptance Criteria**:
@@ -93,10 +162,12 @@ GET    /api/alerts                - Get current alerts/recommendations
 ### Frontend Stack
 - **Framework**: React 18 with TypeScript
 - **Build Tool**: Vite for fast development and optimized builds
-- **UI Components**: shadcn/ui for consistent design system
+- **UI Components**: shadcn/ui with Apple-inspired design system
 - **State Management**: React Query for server state, Zustand for client state
 - **Routing**: React Router for SPA navigation
-- **Charts**: Recharts for price trend visualizations
+- **Charts**: Recharts for analytics and price trend visualizations
+- **Theme System**: Enhanced dark/light mode with seamless transitions
+- **Animation**: CSS animations and transitions for better UX
 
 ### Backend Services
 - **Database**: Supabase (PostgreSQL) with real-time subscriptions
@@ -128,6 +199,47 @@ GET    /api/alerts                - Get current alerts/recommendations
 - **Environment Management**: Separate staging and production environments
 
 ## Data Models
+
+### Enhanced Scraping Jobs Table
+```sql
+scraping_jobs (
+  id: uuid PRIMARY KEY,
+  user_id: uuid REFERENCES auth.users,
+  name: text NOT NULL,
+  url: text NOT NULL,
+  scraping_type: text NOT NULL,
+  prompt: text,
+  status: text DEFAULT 'idle',
+  gemini_model: text DEFAULT 'models/gemini-pro-vision',
+  use_vision: boolean DEFAULT false,
+  schedule_config: jsonb,
+  last_run: timestamp,
+  next_run: timestamp,
+  execution_count: integer DEFAULT 0,
+  success_count: integer DEFAULT 0,
+  avg_execution_time: interval,
+  created_at: timestamp,
+  updated_at: timestamp
+)
+```
+
+### Job Execution History Table
+```sql
+scraping_job_executions (
+  id: uuid PRIMARY KEY,
+  job_id: uuid REFERENCES scraping_jobs,
+  status: text NOT NULL,
+  started_at: timestamp NOT NULL,
+  completed_at: timestamp,
+  duration: interval,
+  items_scraped: integer DEFAULT 0,
+  error_message: text,
+  ai_insights: jsonb,
+  results_preview: text[],
+  gemini_reasoning: text,
+  screenshot_urls: text[]
+)
+```
 
 ### Products Table
 ```sql

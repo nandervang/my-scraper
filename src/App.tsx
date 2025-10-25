@@ -7,12 +7,18 @@ import { AuthCallback } from './pages/AuthCallback';
 import { DashboardHome } from './pages/dashboard/DashboardHome';
 import { JobsPage } from './pages/dashboard/JobsPage';
 import { ProductsPage } from './pages/dashboard/ProductsPage';
+import { MonitoringPage } from './pages/monitoring/MonitoringPage';
+import { NotificationsPage } from './pages/notifications/NotificationsPage';
+import AnalyticsPage from './pages/AnalyticsPage';
 import WebsitesPage from './pages/WebsitesPage';
+import { DeploymentTestPage } from './pages/DeploymentTestPage';
 import { Navigation } from './components/Navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card';
 import { Button } from './components/ui/button';
 import { ThemeProvider } from './hooks/use-theme';
 import { ThemeToggle } from './components/ThemeToggle';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { ErrorStatus, GlobalErrorOverlay } from './components/ErrorStatus';
 
 function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -82,12 +88,14 @@ function App() {
 
   return (
     <ThemeProvider defaultTheme="system" storageKey="my-scraper-theme">
-      <Router>
-        <Routes>
-          <Route path="/auth/callback" element={<AuthCallback />} />
-          <Route path="/*" element={<AuthenticatedApp session={session} onSignOut={handleSignOut} />} />
-        </Routes>
-      </Router>
+      <ErrorBoundary>
+        <Router>
+          <Routes>
+            <Route path="/auth/callback" element={<AuthCallback />} />
+            <Route path="/*" element={<AuthenticatedApp session={session} onSignOut={handleSignOut} />} />
+          </Routes>
+        </Router>
+      </ErrorBoundary>
     </ThemeProvider>
   );
 }
@@ -141,15 +149,24 @@ function AuthenticatedApp({ session, onSignOut }: AuthenticatedAppProps) {
       {/* Main Content */}
       <div className="flex-1 overflow-auto">
         <main className="p-8">
-          <Routes>
-            <Route path="/" element={<DashboardHome />} />
-            <Route path="/jobs" element={<JobsPage />} />
-            <Route path="/products" element={<ProductsPage />} />
-            <Route path="/websites" element={<WebsitesPage />} />
-            <Route path="/notifications" element={<div>Notifications page coming soon</div>} />
-          </Routes>
+          <ErrorBoundary>
+            <Routes>
+              <Route path="/" element={<DashboardHome />} />
+              <Route path="/jobs" element={<JobsPage />} />
+              <Route path="/products" element={<ProductsPage />} />
+              <Route path="/monitoring" element={<MonitoringPage />} />
+              <Route path="/websites" element={<WebsitesPage />} />
+              <Route path="/notifications" element={<NotificationsPage />} />
+              <Route path="/analytics" element={<AnalyticsPage />} />
+              <Route path="/deployment-test" element={<DeploymentTestPage />} />
+            </Routes>
+          </ErrorBoundary>
         </main>
       </div>
+
+      {/* Global Error Status */}
+      <ErrorStatus />
+      <GlobalErrorOverlay />
     </div>
   );
 }

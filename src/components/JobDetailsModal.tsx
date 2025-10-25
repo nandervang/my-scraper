@@ -207,11 +207,9 @@ export function JobDetailsModal({ job, open, onOpenChange }: JobDetailsModalProp
               </TabsTrigger>
             </TabsList>
 
-            <div className="flex-1 overflow-y-auto"
-                 style={{ maxHeight: 'calc(100vh - 300px)' }}>
-              <TabsContent value="details" className="space-y-8 mt-0 text-lg"
-                           data-state="active"
-                           style={{ height: 'auto' }}>
+            <div className="flex-1 overflow-y-auto max-h-modal-content">
+              <TabsContent value="details" className="space-y-8 mt-0 text-lg h-auto"
+                           data-state="active">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <Card className="card-enhanced">
                 <CardHeader>

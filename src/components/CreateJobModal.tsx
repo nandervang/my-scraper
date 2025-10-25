@@ -184,7 +184,7 @@ export function CreateJobModal({ onJobCreated }: CreateJobModalProps) {
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-8 overflow-y-auto flex-1" style={{ maxHeight: 'calc(100vh - 300px)' }}>
+        <form onSubmit={handleSubmit} className="space-y-8 overflow-y-auto flex-1 max-h-modal-form">
           {/* Scraping Type Selection */}
           <div className="space-y-4">
             <label className="text-xl font-semibold">Scraping Type</label>

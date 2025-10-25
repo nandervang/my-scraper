@@ -462,6 +462,23 @@
   .dark .border-gray-200 {
     border-color: hsl(var(--border)) !important;
   }
+  
+  /* Loading animations */
+  .animate-bounce-1 {
+    animation: bounce 1.4s ease-in-out 0s infinite;
+  }
+  
+  .animate-bounce-2 {
+    animation: bounce 1.4s ease-in-out 0.1s infinite;
+  }
+  
+  .animate-bounce-3 {
+    animation: bounce 1.4s ease-in-out 0.2s infinite;
+  }
+  
+  .animate-reverse {
+    animation-direction: reverse;
+  }
 }
 
 @layer components {
@@ -633,4 +650,22 @@
     border-radius: 0;
     padding: 2rem;
   }
+}
+
+/* Custom utility classes for modal forms */
+.max-h-modal-form {
+  max-height: calc(100vh - 300px);
+}
+
+.max-h-modal-content {
+  max-height: calc(100vh - 300px);
+}
+
+.h-auto {
+  height: auto;
+}
+
+/* Dynamic width for progress bars */
+[data-width] {
+  width: attr(data-width);
 }
