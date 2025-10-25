@@ -146,7 +146,7 @@ export class DeploymentTester {
       // Test scheduler function (GET request to see if it exists)
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        const headers = session?.access_token 
+        const authHeaders: Record<string, string> = session?.access_token 
           ? { 'Authorization': `Bearer ${session.access_token}` }
           : {};
 
@@ -154,7 +154,7 @@ export class DeploymentTester {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-            ...headers
+            ...authHeaders
           }
         });
 
@@ -173,13 +173,13 @@ export class DeploymentTester {
       // Test notification function
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        const headers = session?.access_token 
+        const authHeaders: Record<string, string> = session?.access_token 
           ? { 'Authorization': `Bearer ${session.access_token}` }
           : {};
 
         const notificationResponse = await fetch(notificationUrl, {
           method: 'OPTIONS', // CORS preflight
-          headers
+          headers: authHeaders
         });
 
         results.sendNotification = {

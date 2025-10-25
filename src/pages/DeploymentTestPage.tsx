@@ -174,7 +174,7 @@ export function DeploymentTestPage() {
                         </p>
                       </div>
                       
-                      {result.details && Object.keys(result.details as object).length > 0 && (
+                      {result.details && typeof result.details === 'object' && Object.keys(result.details).length > 0 ? (
                         <details className="mt-3">
                           <summary className="text-sm font-medium cursor-pointer hover:text-primary">
                             Technical Details
@@ -185,7 +185,7 @@ export function DeploymentTestPage() {
                               : JSON.stringify(result.details, null, 2)}
                           </div>
                         </details>
-                      )}
+                      ) : null}
                     </div>
                   </CardContent>
                 </Card>

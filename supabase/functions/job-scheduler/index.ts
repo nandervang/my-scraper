@@ -1,10 +1,28 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+// Production-ready CORS configuration
+const getAllowedOrigins = () => {
+  const allowedOrigins = Deno.env.get('ALLOWED_ORIGINS')?.split(',') || [
+    'http://localhost:5173',           // Development
+    'http://127.0.0.1:5173',          // Development alternative
+    'https://my-scraper.netlify.app',  // Production (update with actual domain)
+    'https://staging-my-scraper.netlify.app', // Staging (if exists)
+  ];
+  return allowedOrigins.map(origin => origin.trim());
+};
+
+const getCorsHeaders = (origin: string | null) => {
+  const allowedOrigins = getAllowedOrigins();
+  const isAllowed = origin && allowedOrigins.includes(origin);
+  
+  return {
+    'Access-Control-Allow-Origin': isAllowed ? origin : allowedOrigins[0],
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Credentials': 'true',
+  };
+};
 
 interface ScheduleConfig {
   frequency: 'manual' | 'hourly' | 'daily' | 'weekly' | 'monthly' | 'custom';
@@ -20,6 +38,10 @@ interface JobScheduleRequest {
 }
 
 serve(async (req) => {
+  // Get origin from request for CORS validation
+  const origin = req.headers.get('origin');
+  const corsHeaders = getCorsHeaders(origin);
+
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
