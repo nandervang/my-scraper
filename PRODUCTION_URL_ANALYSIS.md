@@ -25,17 +25,16 @@ const corsHeaders = {
 
 ### Expected Production Domains:
 - **Local Development**: `http://localhost:5173`
-- **Staging**: `https://staging-my-scraper.netlify.app` (if exists)
-- **Production**: `https://my-scraper.netlify.app` (or custom domain)
+- **Production**: `https://mein-scraper.netlify.app` (confirmed production domain)
 
 ## 🛠️ Required Updates
 
 ### Environment Variables Needed:
 ```bash
 # Add to Supabase Edge Function secrets
-ALLOWED_ORIGINS=https://my-scraper.netlify.app,https://staging-my-scraper.netlify.app
+ALLOWED_ORIGINS=https://mein-scraper.netlify.app
 # or
-PRODUCTION_DOMAIN=https://my-scraper.netlify.app
+PRODUCTION_DOMAIN=https://mein-scraper.netlify.app
 NODE_ENV=production
 ```
 
@@ -44,7 +43,7 @@ NODE_ENV=production
 const getAllowedOrigins = () => {
   const allowedOrigins = Deno.env.get('ALLOWED_ORIGINS')?.split(',') || [
     'http://localhost:5173',  // Development
-    'https://my-scraper.netlify.app'  // Production
+    'https://mein-scraper.netlify.app'  // Production
   ];
   return allowedOrigins;
 };
@@ -110,7 +109,7 @@ const getCorsHeaders = (origin: string | null) => {
 ### Verification Commands:
 ```bash
 # Test CORS from production domain
-curl -H "Origin: https://my-scraper.netlify.app" \
+curl -H "Origin: https://mein-scraper.netlify.app" \
      -H "Access-Control-Request-Method: POST" \
      -H "Access-Control-Request-Headers: authorization,content-type" \
      -X OPTIONS \
@@ -118,7 +117,7 @@ curl -H "Origin: https://my-scraper.netlify.app" \
 
 # Test actual function call
 curl -X POST \
-     -H "Origin: https://my-scraper.netlify.app" \
+     -H "Origin: https://mein-scraper.netlify.app" \
      -H "Content-Type: application/json" \
      -H "Authorization: Bearer YOUR_TOKEN" \
      -d '{"jobId":"test","scheduleConfig":{"frequency":"manual"}}' \
