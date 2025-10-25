@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -55,54 +55,53 @@ export function JobHistoryModal({ job, isOpen, onClose }: JobHistoryModalProps) 
   const [executions, setExecutions] = useState<JobExecution[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const loadExecutionHistory = useCallback(async () => {
-    if (!job) return;
-    
-    setLoading(true);
-    try {
-      // TODO: Implement actual history loading from database
-      // For now, simulate some execution history
-      const mockExecutions: JobExecution[] = [
-        {
-          id: '1',
-          status: 'completed',
-          startTime: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
-          endTime: new Date(Date.now() - 2 * 60 * 60 * 1000 + 45000), // 45 seconds duration
-          duration: 45000,
-          itemsScraped: 127,
-          resultsPreview: ['Item 1', 'Item 2', 'Item 3']
-        },
-        {
-          id: '2',
-          status: 'failed',
-          startTime: new Date(Date.now() - 6 * 60 * 60 * 1000), // 6 hours ago
-          endTime: new Date(Date.now() - 6 * 60 * 60 * 1000 + 12000), // 12 seconds duration
-          duration: 12000,
-          error: 'Failed to load page: Connection timeout'
-        },
-        {
-          id: '3',
-          status: 'completed',
-          startTime: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
-          endTime: new Date(Date.now() - 24 * 60 * 60 * 1000 + 67000), // 67 seconds duration
-          duration: 67000,
-          itemsScraped: 89,
-          resultsPreview: ['Product A', 'Product B', 'Product C']
-        }
-      ];
-      setExecutions(mockExecutions);
-    } catch (error) {
-      console.error('Failed to load execution history:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [job]);
-
   useEffect(() => {
     if (job && isOpen) {
-      loadExecutionHistory();
+      // Load execution history when modal opens and job is available
+      const loadInitialHistory = async () => {
+        setLoading(true);
+        try {
+          // TODO: Implement actual history loading from database
+          // For now, simulate some execution history
+          const mockExecutions: JobExecution[] = [
+            {
+              id: '1',
+              status: 'completed',
+              startTime: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
+              endTime: new Date(Date.now() - 2 * 60 * 60 * 1000 + 45000), // 45 seconds duration
+              duration: 45000,
+              itemsScraped: 127,
+              resultsPreview: ['Item 1', 'Item 2', 'Item 3']
+            },
+            {
+              id: '2',
+              status: 'failed',
+              startTime: new Date(Date.now() - 6 * 60 * 60 * 1000), // 6 hours ago
+              endTime: new Date(Date.now() - 6 * 60 * 60 * 1000 + 12000), // 12 seconds duration
+              duration: 12000,
+              error: 'Failed to load page: Connection timeout'
+            },
+            {
+              id: '3',
+              status: 'completed',
+              startTime: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
+              endTime: new Date(Date.now() - 24 * 60 * 60 * 1000 + 67000), // 67 seconds duration
+              duration: 67000,
+              itemsScraped: 89,
+              resultsPreview: ['Product A', 'Product B', 'Product C']
+            }
+          ];
+          setExecutions(mockExecutions);
+        } catch (error) {
+          console.error('Failed to load execution history:', error);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      loadInitialHistory();
     }
-  }, [job, isOpen, loadExecutionHistory]);
+  }, [job?.id, isOpen]); // Use job?.id to track only when job ID changes
 
   const getStatusIcon = (status: string) => {
     switch (status) {

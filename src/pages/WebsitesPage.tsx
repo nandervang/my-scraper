@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -36,7 +36,31 @@ const WebsitesPage: React.FC = () => {
     description: ''
   });
 
-  const loadWebsites = useCallback(async () => {
+  useEffect(() => {
+    // Load websites on component mount
+    const loadInitialWebsites = async () => {
+      try {
+        setIsLoading(true);
+        const { data: userWebsites, error } = await db.websites.list();
+        if (error) throw error;
+        setWebsites(userWebsites || []);
+      } catch (error) {
+        console.error('Error loading websites:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load websites",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadInitialWebsites();
+  }, []); // Only run once on mount
+
+  // Load websites function for reuse in other operations
+  const loadWebsites = async () => {
     try {
       const { data: userWebsites, error } = await db.websites.list();
       if (error) throw error;
@@ -48,14 +72,8 @@ const WebsitesPage: React.FC = () => {
         description: "Failed to load websites",
         variant: "destructive"
       });
-    } finally {
-      setIsLoading(false);
     }
-  }, [toast]);
-
-  useEffect(() => {
-    loadWebsites();
-  }, [loadWebsites]);
+  };
 
   const handleAddWebsite = async (e: React.FormEvent) => {
     e.preventDefault();

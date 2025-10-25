@@ -6,8 +6,7 @@ const getAllowedOrigins = () => {
   const allowedOrigins = Deno.env.get('ALLOWED_ORIGINS')?.split(',') || [
     'http://localhost:5173',           // Development
     'http://127.0.0.1:5173',          // Development alternative
-    'https://my-scraper.netlify.app',  // Production (update with actual domain)
-    'https://staging-my-scraper.netlify.app', // Staging (if exists)
+    'https://mein-scraper.netlify.app', // Production (corrected domain)
   ];
   return allowedOrigins.map(origin => origin.trim());
 };
@@ -85,7 +84,7 @@ serve(async (req) => {
 
       // Validate the job belongs to the user
       const { data: job, error: jobError } = await supabase
-        .from('scraping_jobs')
+        .from('scraper_jobs')
         .select('id, user_id')
         .eq('id', jobId)
         .eq('user_id', user.id)
@@ -106,7 +105,7 @@ serve(async (req) => {
 
       // Update the job with the new schedule
       const { error: updateError } = await supabase
-        .from('scraping_jobs')
+        .from('scraper_jobs')
         .update({
           schedule_config: scheduleConfig,
           next_run: nextRun,
@@ -141,7 +140,7 @@ serve(async (req) => {
     if (req.method === 'GET') {
       // Get all scheduled jobs for processing
       const { data: scheduledJobs, error: jobsError } = await supabase
-        .from('scraping_jobs')
+        .from('scraper_jobs')
         .select('id, name, schedule_config, next_run, last_run')
         .not('schedule_config->frequency', 'eq', 'manual')
         .lte('next_run', new Date().toISOString())
@@ -167,7 +166,7 @@ serve(async (req) => {
           
           // Update the job's next run time
           await supabase
-            .from('scraping_jobs')
+            .from('scraper_jobs')
             .update({
               next_run: nextRun,
               last_run: new Date().toISOString()
