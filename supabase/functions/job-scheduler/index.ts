@@ -107,8 +107,9 @@ serve(async (req) => {
       const { error: updateError } = await supabase
         .from('scraper_jobs')
         .update({
-          schedule_config: scheduleConfig,
-          next_run: nextRun,
+          schedule_cron: convertScheduleConfigToCron(scheduleConfig),
+          next_run_at: nextRun,
+          schedule_enabled: scheduleConfig.frequency !== 'manual',
           updated_at: new Date().toISOString()
         })
         .eq('id', jobId)
@@ -141,10 +142,10 @@ serve(async (req) => {
       // Get all scheduled jobs for processing
       const { data: scheduledJobs, error: jobsError } = await supabase
         .from('scraper_jobs')
-        .select('id, name, schedule_config, next_run, last_run')
-        .not('schedule_config->frequency', 'eq', 'manual')
-        .lte('next_run', new Date().toISOString())
-        .eq('status', 'idle')
+        .select('id, name, schedule_cron, next_run_at, last_run_at, schedule_enabled')
+        .eq('schedule_enabled', true)
+        .lte('next_run_at', new Date().toISOString())
+        .eq('status', 'pending')
 
       if (jobsError) {
         console.error('Failed to fetch scheduled jobs:', jobsError)
@@ -161,21 +162,17 @@ serve(async (req) => {
       const processed = []
       for (const job of scheduledJobs || []) {
         try {
-          // Calculate next run time
-          const nextRun = calculateNextRun(job.schedule_config)
+          // For now, we'll just update the last run time and return success
+          // In a real implementation, you would trigger the actual job execution here
           
-          // Update the job's next run time
           await supabase
             .from('scraper_jobs')
             .update({
-              next_run: nextRun,
-              last_run: new Date().toISOString()
+              last_run_at: new Date().toISOString()
             })
             .eq('id', job.id)
 
-          // Here you would trigger the actual job execution
-          // For now, we'll just log it
-          console.log(`Triggered scheduled job: ${job.name} (${job.id})`)
+          console.log(`Processed scheduled job: ${job.name} (${job.id})`)
           processed.push(job.id)
 
         } catch (error) {
@@ -267,6 +264,41 @@ function calculateNextRun(scheduleConfig: ScheduleConfig): string | null {
       return new Date(nowInTimezone.getTime() + customInterval).toISOString()
     }
     
+    default:
+      return null
+  }
+}
+
+function convertScheduleConfigToCron(scheduleConfig: ScheduleConfig): string | null {
+  if (scheduleConfig.frequency === 'manual') {
+    return null
+  }
+
+  switch (scheduleConfig.frequency) {
+    case 'hourly': {
+      return '0 * * * *' // Every hour at minute 0
+    }
+    case 'daily': {
+      const time = scheduleConfig.time || '09:00'
+      const [hours, minutes] = time.split(':').map(Number)
+      return `${minutes} ${hours} * * *` // Daily at specified time
+    }
+    case 'weekly': {
+      const weeklyTime = scheduleConfig.time || '09:00'
+      const [weeklyHours, weeklyMinutes] = weeklyTime.split(':').map(Number)
+      const day = scheduleConfig.days?.[0] || 1 // Default to Monday
+      return `${weeklyMinutes} ${weeklyHours} * * ${day}` // Weekly on specified day
+    }
+    case 'monthly': {
+      const monthlyTime = scheduleConfig.time || '09:00'
+      const [monthlyHours, monthlyMinutes] = monthlyTime.split(':').map(Number)
+      return `${monthlyMinutes} ${monthlyHours} 1 * *` // Monthly on 1st day
+    }
+    case 'custom': {
+      // For custom intervals, we'll use a simple hourly pattern
+      const interval = scheduleConfig.interval || 1
+      return `0 */${interval} * * *` // Every N hours
+    }
     default:
       return null
   }

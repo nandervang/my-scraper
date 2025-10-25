@@ -6,8 +6,8 @@ const getAllowedOrigins = () => {
   const allowedOrigins = Deno.env.get('ALLOWED_ORIGINS')?.split(',') || [
     'http://localhost:5173',           // Development
     'http://127.0.0.1:5173',          // Development alternative
-    'https://my-scraper.netlify.app',  // Production (update with actual domain)
-    'https://staging-my-scraper.netlify.app', // Staging (if exists)
+    'https://mein-scraper.netlify.app',  // Production
+    'https://staging-mein-scraper.netlify.app', // Staging (if exists)
   ];
   return allowedOrigins.map(origin => origin.trim());
 };
@@ -34,8 +34,29 @@ interface NotificationPayload {
     timestamp: string;
     job_id?: string;
     execution_id?: string;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
   };
+}
+
+interface NotificationSettings {
+  id: string;
+  user_id: string;
+  email_enabled: boolean;
+  email_address?: string;
+  sms_enabled: boolean;
+  sms_number?: string;
+  webhook_enabled: boolean;
+  webhook_url?: string;
+  webhook_secret?: string;
+  job_completion_enabled: boolean;
+  job_failure_enabled: boolean;
+  job_scheduled_enabled: boolean;
+  error_threshold_enabled: boolean;
+  quiet_hours_enabled: boolean;
+  quiet_hours_start?: string;
+  quiet_hours_end?: string;
+  max_notifications_per_hour: number;
+  max_notifications_per_day: number;
 }
 
 serve(async (req) => {
@@ -91,7 +112,7 @@ serve(async (req) => {
 
     // Get user's notification settings
     const { data: settings, error: settingsError } = await supabaseClient
-      .from('notification_settings')
+      .from('scraper_notification_settings')
       .select('*')
       .eq('user_id', user.id)
       .single()
@@ -109,8 +130,19 @@ serve(async (req) => {
 
     // Check if notifications are enabled for this type and channel
     if (settings && payload.type !== 'test') {
-      const channelEnabled = settings[`${payload.channel}_enabled`]
-      const typeEnabled = settings.notification_types?.[payload.type]
+      const channelEnabled = settings[`${payload.channel}_enabled` as keyof NotificationSettings] as boolean
+      
+      // Map notification types to database fields
+      const typeMapping: Record<string, keyof NotificationSettings> = {
+        'job_completed': 'job_completion_enabled',
+        'job_failed': 'job_failure_enabled', 
+        'job_started': 'job_scheduled_enabled',
+        'job_scheduled': 'job_scheduled_enabled',
+        'system_alert': 'error_threshold_enabled',
+        'performance_alert': 'error_threshold_enabled'
+      }
+      
+      const typeEnabled = settings[typeMapping[payload.type]] as boolean ?? true
       
       if (!channelEnabled || !typeEnabled) {
         return new Response(
@@ -126,65 +158,24 @@ serve(async (req) => {
         )
       }
 
-      // Check quiet hours
-      if (settings.quiet_hours?.enabled) {
-        const now = new Date()
-        const currentTime = now.toTimeString().slice(0, 5) // HH:MM format
-        const startTime = settings.quiet_hours.start_time
-        const endTime = settings.quiet_hours.end_time
-        
-        // Check if current time is within quiet hours
-        const isQuietTime = (startTime <= endTime) 
-          ? (currentTime >= startTime && currentTime <= endTime)
-          : (currentTime >= startTime || currentTime <= endTime)
-        
-        if (isQuietTime) {
-          // Log the notification for later delivery
-          await supabaseClient
-            .from('notification_queue')
-            .insert([{
-              user_id: user.id,
-              type: payload.type,
-              channel: payload.channel,
-              recipient: payload.recipient,
-              message: payload.message,
-              scheduled_for: new Date(now.getTime() + 8 * 60 * 60 * 1000).toISOString(), // 8 hours later
-              created_at: now.toISOString()
-            }])
-
-          return new Response(
-            JSON.stringify({ 
-              success: true, 
-              message: 'Notification queued for after quiet hours',
-              sent: false,
-              queued: true
-            }),
-            { 
-              status: 200, 
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            },
-          )
-        }
-      }
-
       // Check frequency limits
       const now = new Date()
       const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000)
       const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000)
 
       const { count: hourlyCount } = await supabaseClient
-        .from('notification_history')
+        .from('scraper_notification_history')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id)
-        .gte('sent_at', oneHourAgo.toISOString())
+        .gte('created_at', oneHourAgo.toISOString())
 
       const { count: dailyCount } = await supabaseClient
-        .from('notification_history')
+        .from('scraper_notification_history')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id)
-        .gte('sent_at', oneDayAgo.toISOString())
+        .gte('created_at', oneDayAgo.toISOString())
 
-      if (hourlyCount && hourlyCount >= (settings.frequency_limits?.max_per_hour || 10)) {
+      if (hourlyCount && hourlyCount >= settings.max_notifications_per_hour) {
         return new Response(
           JSON.stringify({ 
             success: true, 
@@ -198,7 +189,7 @@ serve(async (req) => {
         )
       }
 
-      if (dailyCount && dailyCount >= (settings.frequency_limits?.max_per_day || 50)) {
+      if (dailyCount && dailyCount >= settings.max_notifications_per_day) {
         return new Response(
           JSON.stringify({ 
             success: true, 
@@ -213,15 +204,15 @@ serve(async (req) => {
       }
     }
 
-    let notificationResult: any = { sent: false }
+    let notificationResult: { sent: boolean; details?: string } = { sent: false }
 
     // Send notification based on channel
     switch (payload.channel) {
       case 'email':
-        notificationResult = await sendEmailNotification(payload, settings)
+        notificationResult = await sendEmailNotification(payload)
         break
       case 'sms':
-        notificationResult = await sendSMSNotification(payload, settings)
+        notificationResult = await sendSMSNotification(payload)
         break
       case 'webhook':
         notificationResult = await sendWebhookNotification(payload, settings)
@@ -239,15 +230,16 @@ serve(async (req) => {
     // Log the notification
     if (notificationResult.sent) {
       await supabaseClient
-        .from('notification_history')
+        .from('scraper_notification_history')
         .insert([{
           user_id: user.id,
-          type: payload.type,
-          channel: payload.channel,
-          recipient: payload.recipient,
-          message: payload.message,
+          notification_type: payload.type,
+          title: payload.message.title,
+          message: payload.message.body,
+          channels_sent: [payload.channel],
+          status: 'sent',
           sent_at: new Date().toISOString(),
-          success: true
+          created_at: new Date().toISOString()
         }])
     }
 
@@ -266,8 +258,9 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error sending notification:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     return new Response(
-      JSON.stringify({ error: 'Internal server error', details: error.message }),
+      JSON.stringify({ error: 'Internal server error', details: errorMessage }),
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -276,9 +269,9 @@ serve(async (req) => {
   }
 })
 
-async function sendEmailNotification(payload: NotificationPayload, settings: any) {
+async function sendEmailNotification(payload: NotificationPayload): Promise<{ sent: boolean; details?: string }> {
   try {
-    // For this demo, we'll use a simple email service
+    // For this demo, we'll simulate email sending
     // In production, you'd integrate with SendGrid, AWS SES, etc.
     
     const emailApiKey = Deno.env.get('EMAIL_API_KEY')
@@ -297,13 +290,14 @@ async function sendEmailNotification(payload: NotificationPayload, settings: any
     return { sent: true, details: 'Email sent successfully' }
   } catch (error) {
     console.error('Failed to send email:', error)
-    return { sent: false, details: error.message }
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    return { sent: false, details: errorMessage }
   }
 }
 
-async function sendSMSNotification(payload: NotificationPayload, settings: any) {
+async function sendSMSNotification(payload: NotificationPayload): Promise<{ sent: boolean; details?: string }> {
   try {
-    // For this demo, we'll use a simple SMS service
+    // For this demo, we'll simulate SMS sending
     // In production, you'd integrate with Twilio, AWS SNS, etc.
     
     const smsApiKey = Deno.env.get('SMS_API_KEY')
@@ -321,11 +315,12 @@ async function sendSMSNotification(payload: NotificationPayload, settings: any) 
     return { sent: true, details: 'SMS sent successfully' }
   } catch (error) {
     console.error('Failed to send SMS:', error)
-    return { sent: false, details: error.message }
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    return { sent: false, details: errorMessage }
   }
 }
 
-async function sendWebhookNotification(payload: NotificationPayload, settings: any) {
+async function sendWebhookNotification(payload: NotificationPayload, settings: NotificationSettings | null): Promise<{ sent: boolean; details?: string }> {
   try {
     const webhookPayload = {
       type: payload.type,
@@ -335,7 +330,7 @@ async function sendWebhookNotification(payload: NotificationPayload, settings: a
     }
 
     // Add signature if secret is provided
-    let headers: Record<string, string> = {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'User-Agent': 'MyScraperNotificationBot/1.0'
     }
@@ -358,6 +353,7 @@ async function sendWebhookNotification(payload: NotificationPayload, settings: a
     return { sent: true, details: `Webhook delivered with status ${response.status}` }
   } catch (error) {
     console.error('Failed to send webhook:', error)
-    return { sent: false, details: error.message }
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    return { sent: false, details: errorMessage }
   }
 }
