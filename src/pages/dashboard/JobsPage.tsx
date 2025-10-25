@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { db, type ScrapingJob } from '@/lib/supabase';
 import { JobExecutor, JobExecutionException, JobExecutionError } from '@/lib/jobExecutor';
 import { Card, CardContent, CardDescription, CardTitle } from '@/components/ui/card';
@@ -7,7 +7,6 @@ import { CreateJobModal } from '@/components/CreateJobModal';
 import { JobDetailsModal } from '@/components/JobDetailsModal';
 import { JobCard } from '@/components/JobCard';
 import { useToast } from '@/hooks/use-toast';
-import { useApiErrorHandler } from '@/hooks/useErrorHandler';
 import { Search, Filter } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { LoadingCard } from '@/components/ui/loading';
@@ -21,39 +20,44 @@ export function JobsPage() {
   const [showJobDetails, setShowJobDetails] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  // Enhanced error handling
-  const { 
-    error, 
-    isLoading: loading, 
-    executeApiCall, 
-    clearError, 
-    retry 
-  } = useApiErrorHandler({
-    showToast: false, // We'll handle toasts manually for better UX
-    autoRetry: false,
-    maxRetries: 3,
-  });
-
-  const loadJobs = useCallback(async () => {
-    const { data } = await executeApiCall(
-      async () => {
+  useEffect(() => {
+    // Load jobs on component mount
+    const loadInitialJobs = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
         const result = await db.jobs.list();
         if (result.error) throw result.error;
-        return result.data || [];
-      },
-      { context: 'loadJobs' }
-    );
+        
+        setJobs(result.data || []);
+      } catch (err) {
+        console.error('Failed to load jobs:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load jobs');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    if (data) {
-      setJobs(data);
+    loadInitialJobs();
+  }, []); // Only run once on mount
+
+  // Load jobs function for reuse in other operations
+  const loadJobs = async () => {
+    try {
+      const result = await db.jobs.list();
+      if (result.error) throw result.error;
+      setJobs(result.data || []);
+      setError(null);
+    } catch (err) {
+      console.error('Failed to load jobs:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load jobs');
     }
-  }, [executeApiCall]);
-
-  useEffect(() => {
-    loadJobs();
-  }, [loadJobs]);
+  };
 
   const runJob = async (job: ScrapingJob) => {
     try {
@@ -196,17 +200,12 @@ export function JobsPage() {
             <div className="text-8xl mb-6">⚠️</div>
             <h2 className="text-2xl font-bold text-foreground mb-2">Something went wrong</h2>
             <p className="text-muted-foreground mb-6 max-w-md">
-              We encountered an error while loading your jobs: {error?.userMessage || error?.message || 'Unknown error'}
+              We encountered an error while loading your jobs: {error}
             </p>
             <div className="flex gap-3">
-              <Button onClick={() => { clearError(); loadJobs(); }} className="apple-button">
+              <Button onClick={() => { setError(null); loadJobs(); }} className="apple-button">
                 Try Again
               </Button>
-              {error?.recoverable && (
-                <Button onClick={retry} variant="outline" className="apple-button">
-                  Auto Retry
-                </Button>
-              )}
             </div>
           </div>
         </div>
