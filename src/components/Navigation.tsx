@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { Home, Bot, Package, Bell, Globe, Activity, BarChart3 } from 'lucide-react';
+import { Home, Bot, Package, Bell, Globe, Activity, BarChart3, Settings } from 'lucide-react';
 
 interface NavItemProps {
   to: string;
@@ -84,6 +84,11 @@ export function Navigation({ jobsCount = 0, productsCount = 0, notificationsCoun
         to="/analytics"
         icon={<BarChart3 className="h-4 w-4" />}
         label="Analytics"
+      />
+      <NavItem
+        to="/deployment-test"
+        icon={<Settings className="h-4 w-4" />}
+        label="Deployment Test"
       />
     </nav>
   );
